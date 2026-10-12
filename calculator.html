@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculator</title>
+<style>
+:root {
+  --bg: #e9ecef; --body: #1f2a37; --screen: #c9d6c1; --screen-ink: #1c2b1f;
+  --key: #f8f9fa; --key-ink: #1f2a37; --op: #3b6ea5; --op-ink: #fff;
+  --clear: #c8553d; --eq: #2f8f6b; --shadow: rgba(0,0,0,.25);
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --body: #232b35; --screen: #3a4a3a; --screen-ink: #d7f0d0;
+    --key: #323c48; --key-ink: #eef1f4; --op: #4a7fb8; --clear: #d0624b; --eq: #3aa57c; --shadow: rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --body: #232b35; --screen: #3a4a3a; --screen-ink: #d7f0d0;
+  --key: #323c48; --key-ink: #eef1f4; --op: #4a7fb8; --clear: #d0624b; --eq: #3aa57c; --shadow: rgba(0,0,0,.6);
+}
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); display: flex; align-items: center; justify-content: center;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+.calc {
+  width: min(340px, 92vw); background: var(--body); padding: 18px; border-radius: 22px;
+  box-shadow: 0 18px 40px var(--shadow);
+}
+.screen {
+  background: var(--screen); color: var(--screen-ink); border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 16px; text-align: right; min-height: 78px;
+  display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
+}
+.history { font-size: 14px; opacity: .65; min-height: 20px; word-break: break-all; }
+.current { font-size: 38px; font-weight: 600; word-break: break-all; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+button {
+  font: inherit; font-size: 20px; font-weight: 600; border: 0; border-radius: 12px;
+  padding: 16px 0; cursor: pointer; background: var(--key); color: var(--key-ink);
+  box-shadow: 0 3px 0 var(--shadow); transition: transform .06s, box-shadow .06s;
+}
+button:active { transform: translateY(3px); box-shadow: none; }
+button:focus-visible { outline: 3px solid var(--op); outline-offset: 2px; }
+.op { background: var(--op); color: var(--op-ink); }
+.clear { background: var(--clear); color: #fff; }
+.eq { background: var(--eq); color: #fff; grid-row: span 2; }
+.zero { grid-column: span 2; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+</head>
+<body>
+<div class="calc" role="application" aria-label="Calculator">
+  <div class="screen" aria-live="polite">
+    <div class="history" id="history"></div>
+    <div class="current" id="current">0</div>
+  </div>
+  <div class="keys">
+    <button class="clear" data-action="clear">AC</button>
+    <button data-action="back" aria-label="Backspace">⌫</button>
+    <button data-action="percent">%</button>
+    <button class="op" data-op="/">÷</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="op" data-op="*">×</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="op" data-op="-">−</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button class="op" data-op="+">+</button>
+
+    <button class="zero" data-num="0">0</button>
+    <button data-action="dot">.</button>
+    <button class="eq" data-action="equals">=</button>
+  </div>
+</div>
+<script>
+(function () {
+  var cur = document.getElementById('current');
+  var hist = document.getElementById('history');
+  var symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+  var value = '0', prev = null, op = null, fresh = false;
+
+  function fmt(s) {
+    if (s === 'Error') return s;
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  }
+  function render() {
+    cur.textContent = fmt(value);
+    hist.textContent = op ? fmt(String(prev)) + ' ' + symbols[op] : '';
+  }
+  function compute(a, b, o) {
+    a = parseFloat(a); b = parseFloat(b);
+    var r;
+    if (o === '+') r = a + b;
+    else if (o === '-') r = a - b;
+    else if (o === '*') r = a * b;
+    else if (o === '/') { if (b === 0) return 'Error'; r = a / b; }
+    r = parseFloat(r.toPrecision(12));
+    return String(r);
+  }
+  function num(d) {
+    if (value === 'Error') reset();
+    if (fresh) { value = '0'; fresh = false; }
+    value = value === '0' ? d : value + d;
+    if (value.replace(/[-.]/g, '').length > 15) value = value.slice(0, -1);
+    render();
+  }
+  function dot() {
+    if (value === 'Error') reset();
+    if (fresh) { value = '0'; fresh = false; }
+    if (value.indexOf('.') === -1) value += '.';
+    render();
+  }
+  function setOp(o) {
+    if (value === 'Error') return;
+    if (op && !fresh) {
+      value = compute(prev, value, op);
+      if (value === 'Error') { op = null; prev = null; render(); return; }
+    }
+    prev = value; op = o; fresh = true; render();
+  }
+  function equals() {
+    if (!op || value === 'Error') return;
+    var shown = fmt(String(prev)) + ' ' + symbols[op] + ' ' + fmt(value) + ' =';
+    value = compute(prev, value, op);
+    op = null; prev = null; fresh = true;
+    cur.textContent = fmt(value); hist.textContent = shown;
+  }
+  function percent() {
+    if (value === 'Error') return;
+    value = String(parseFloat((parseFloat(value) / 100).toPrecision(12)));
+    render();
+  }
+  function back() {
+    if (value === 'Error' || fresh) return;
+    value = value.length > 1 ? value.slice(0, -1) : '0';
+    if (value === '-') value = '0';
+    render();
+  }
+  function reset() { value = '0'; prev = null; op = null; fresh = false; render(); }
+
+  document.querySelector('.keys').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.num !== undefined) num(b.dataset.num);
+    else if (b.dataset.op) setOp(b.dataset.op);
+    else {
+      var a = b.dataset.action;
+      if (a === 'clear') reset();
+      else if (a === 'back') back();
+      else if (a === 'dot') dot();
+      else if (a === 'equals') equals();
+      else if (a === 'percent') percent();
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (/^[0-9]$/.test(k)) num(k);
+    else if (k === '.') dot();
+    else if ('+-*/'.indexOf(k) !== -1) { e.preventDefault(); setOp(k); }
+    else if (k === 'Enter' || k === '=') { e.preventDefault(); equals(); }
+    else if (k === 'Backspace') back();
+    else if (k === 'Escape' || k === 'Delete') reset();
+    else if (k === '%') percent();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

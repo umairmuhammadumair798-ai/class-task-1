@@ -1,0 +1,47 @@
+:root {
+  --bg: #e9ecef; --body: #1f2a37; --screen: #c9d6c1; --screen-ink: #1c2b1f;
+  --key: #f8f9fa; --key-ink: #1f2a37; --op: #3b6ea5; --op-ink: #fff;
+  --clear: #c8553d; --eq: #2f8f6b; --shadow: rgba(0,0,0,.25);
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161b; --body: #232b35; --screen: #3a4a3a; --screen-ink: #d7f0d0;
+    --key: #323c48; --key-ink: #eef1f4; --op: #4a7fb8; --clear: #d0624b; --eq: #3aa57c; --shadow: rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161b; --body: #232b35; --screen: #3a4a3a; --screen-ink: #d7f0d0;
+  --key: #323c48; --key-ink: #eef1f4; --op: #4a7fb8; --clear: #d0624b; --eq: #3aa57c; --shadow: rgba(0,0,0,.6);
+}
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); display: flex; align-items: center; justify-content: center;
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+.calc {
+  width: min(340px, 92vw); background: var(--body); padding: 18px; border-radius: 22px;
+  box-shadow: 0 18px 40px var(--shadow);
+}
+.screen {
+  background: var(--screen); color: var(--screen-ink); border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 16px; text-align: right; min-height: 78px;
+  display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden;
+}
+.history { font-size: 14px; opacity: .65; min-height: 20px; word-break: break-all; }
+.current { font-size: 38px; font-weight: 600; word-break: break-all; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+button {
+  font: inherit; font-size: 20px; font-weight: 600; border: 0; border-radius: 12px;
+  padding: 16px 0; cursor: pointer; background: var(--key); color: var(--key-ink);
+  box-shadow: 0 3px 0 var(--shadow); transition: transform .06s, box-shadow .06s;
+}
+button:active { transform: translateY(3px); box-shadow: none; }
+button:focus-visible { outline: 3px solid var(--op); outline-offset: 2px; }
+.op { background: var(--op); color: var(--op-ink); }
+.clear { background: var(--clear); color: #fff; }
+.eq { background: var(--eq); color: #fff; grid-row: span 2; }
+.zero { grid-column: span 2; }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
